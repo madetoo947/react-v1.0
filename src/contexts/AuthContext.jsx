@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useMemo } from 'react' // 1. Импортируем useMemo
 import { supabase } from '../api/supabaseClient'
 
 const AuthContext = createContext()
@@ -8,66 +8,59 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // 1. Получаем текущую сессию при первой загрузке приложения
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        // Если сессия есть, запрашиваем профиль
-        supabase
+    const getUserProfile = async (user) => {
+      try {
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', session.user.id)
+          .eq('id', user.id)
           .single()
-          .then(({ data: profile }) => {
-            // Собираем полный объект пользователя с ролью
-            const fullUser = {
-              ...session.user,
-              role: profile?.role || 'user',
-            }
-            setUser(fullUser)
-            // И ТОЛЬКО ПОСЛЕ ЭТОГО завершаем загрузку
-            setLoading(false)
-          })
-      } else {
-        // ИЗМЕНЕНИЕ: Если сессии нет, мы должны сразу закончить загрузку!
-        setLoading(false)
+
+        if (error) throw error
+        return { ...user, role: profile?.role || 'user' }
+      } catch (error) {
+        console.error('Ошибка при получении профиля:', error)
+        return null
       }
+    }
+
+    // Этап 1: Проверка сессии при первой загрузке
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        const fullUser = await getUserProfile(session.user)
+        setUser(fullUser)
+      }
+      setLoading(false)
     })
 
-    // 2. Слушаем изменения состояния аутентификации
+    // Этап 2: Слушаем изменения состояния в будущем
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
-        // Пользователь вошел. Запрашиваем его профиль.
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
-
-        const fullUser = {
-          ...session.user,
-          role: profile?.role || 'user',
-        }
+        const fullUser = await getUserProfile(session.user)
         setUser(fullUser)
       } else {
-        // Пользователь вышел
         setUser(null)
       }
-      // ИЗМЕНЕНИЕ: Завершаем загрузку в любом случае после изменения состояния
-      setLoading(false)
     })
 
-    // 3. Отписываемся от слушателя
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
-  const value = {
-    user,
-    loading,
-    logout: () => supabase.auth.signOut(),
-  }
+  // 2. Мемоизируем значение контекста
+  // Этот объект будет пересоздаваться ТОЛЬКО когда изменится `user`
+  const value = useMemo(
+    () => ({
+      user,
+      logout: () => supabase.auth.signOut(),
+    }),
+    [user]
+  )
 
+  // Пока идет самая первая проверка, ничего не показываем.
   return (
     <AuthContext.Provider value={value}>
       {!loading && children}
