@@ -23,7 +23,6 @@ export function AuthProvider({ children }) {
           .eq('id', sessionUser.id)
           .single()
 
-        // Добавляем таймаут, чтобы выявить зависание
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(
             () =>
@@ -56,34 +55,13 @@ export function AuthProvider({ children }) {
         return fullUser
       } catch (error) {
         console.error('Ошибка внутри getUserProfile:', error)
-        return { ...sessionUser, role: 'user' } // Возвращаем пользователя с ролью по умолчанию в случае ошибки
+        return { ...sessionUser, role: 'user' }
       }
     }
 
-    const fetchSession = async () => {
-      console.log('[AuthProvider] > fetchSession: Начало проверки сессии.')
-      try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession()
-        if (error) throw error
-        if (session) {
-          const fullUser = await getUserProfile(session.user)
-          setUser(fullUser)
-        }
-      } catch (error) {
-        console.error('Ошибка при восстановлении сессии:', error)
-      } finally {
-        console.log(
-          '[AuthProvider] > fetchSession: ЗАВЕРШЕНИЕ загрузки, setLoading(false).'
-        )
-        setLoading(false)
-      }
-    }
-
-    fetchSession()
-
+    // --- ИЗМЕНЕНИЕ ---
+    // Убираем ручной вызов fetchSession и полагаемся только на onAuthStateChange.
+    // Он сработает сразу при загрузке с информацией о текущей сессии.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -97,6 +75,9 @@ export function AuthProvider({ children }) {
       } else {
         setUser(null)
       }
+      // Устанавливаем `loading` в `false` здесь. Это гарантирует, что
+      // приложение отобразится после того, как сессия будет проверена.
+      setLoading(false)
     })
 
     return () => {
