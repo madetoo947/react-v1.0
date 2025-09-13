@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useMemo } from 'react' // 1. Импортируем useMemo
+import { createContext, useContext, useState, useEffect, useMemo } from 'react'
 import { supabase } from '../api/supabaseClient'
 
 const AuthContext = createContext()
@@ -7,36 +7,90 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  console.log('[AuthProvider] > Рендер компонента.', { loading, user })
+
   useEffect(() => {
-    const getUserProfile = async (user) => {
+    console.log('[AuthProvider] > useEffect запущен.')
+
+    const getUserProfile = async (sessionUser) => {
+      console.log(
+        `[AuthProvider] > getUserProfile: Начинаем запрос профиля для ${sessionUser.id}`
+      )
       try {
-        const { data: profile, error } = await supabase
+        const profilePromise = supabase
           .from('profiles')
           .select('role')
-          .eq('id', user.id)
+          .eq('id', sessionUser.id)
           .single()
 
-        if (error) throw error
-        return { ...user, role: profile?.role || 'user' }
+        // Добавляем таймаут, чтобы выявить зависание
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(
+            () =>
+              reject(
+                new Error('Таймаут! Запрос профиля занял больше 10 секунд.')
+              ),
+            10000
+          )
+        )
+
+        const { data: profile, error } = await Promise.race([
+          profilePromise,
+          timeoutPromise,
+        ])
+
+        console.log(
+          '[AuthProvider] > getUserProfile: Запрос профиля ЗАВЕРШЕН.',
+          { profile, error }
+        )
+
+        if (error) {
+          throw error
+        }
+
+        const fullUser = { ...sessionUser, role: profile?.role || 'user' }
+        console.log(
+          '[AuthProvider] > getUserProfile: Профиль успешно обработан.',
+          { fullUser }
+        )
+        return fullUser
       } catch (error) {
-        console.error('Ошибка при получении профиля:', error)
-        return null
+        console.error('Ошибка внутри getUserProfile:', error)
+        return { ...sessionUser, role: 'user' } // Возвращаем пользователя с ролью по умолчанию в случае ошибки
       }
     }
 
-    // Этап 1: Проверка сессии при первой загрузке
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        const fullUser = await getUserProfile(session.user)
-        setUser(fullUser)
+    const fetchSession = async () => {
+      console.log('[AuthProvider] > fetchSession: Начало проверки сессии.')
+      try {
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession()
+        if (error) throw error
+        if (session) {
+          const fullUser = await getUserProfile(session.user)
+          setUser(fullUser)
+        }
+      } catch (error) {
+        console.error('Ошибка при восстановлении сессии:', error)
+      } finally {
+        console.log(
+          '[AuthProvider] > fetchSession: ЗАВЕРШЕНИЕ загрузки, setLoading(false).'
+        )
+        setLoading(false)
       }
-      setLoading(false)
-    })
+    }
 
-    // Этап 2: Слушаем изменения состояния в будущем
+    fetchSession()
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log('[AuthProvider] > onAuthStateChange: Сработало событие.', {
+        _event,
+        session,
+      })
       if (session) {
         const fullUser = await getUserProfile(session.user)
         setUser(fullUser)
@@ -46,12 +100,13 @@ export function AuthProvider({ children }) {
     })
 
     return () => {
-      subscription.unsubscribe()
+      console.log(
+        '[AuthProvider] > useEffect cleanup: Отписка от onAuthStateChange.'
+      )
+      subscription?.unsubscribe()
     }
   }, [])
 
-  // 2. Мемоизируем значение контекста
-  // Этот объект будет пересоздаваться ТОЛЬКО когда изменится `user`
   const value = useMemo(
     () => ({
       user,
@@ -60,7 +115,6 @@ export function AuthProvider({ children }) {
     [user]
   )
 
-  // Пока идет самая первая проверка, ничего не показываем.
   return (
     <AuthContext.Provider value={value}>
       {!loading && children}
