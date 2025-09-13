@@ -64,8 +64,6 @@ export default function DataFetcher({ activeTab }) {
     setSelectedMonth(date)
   }
 
-  // Упрощаем логику загрузки. Если user еще не пришел, enabled: false не даст
-  // isError стать true, поэтому мы просто показываем загрузчик.
   if (isLoading) {
     return <LoadingIndicator loading={true} />
   }
@@ -80,9 +78,7 @@ export default function DataFetcher({ activeTab }) {
     )
   }
 
-  // ... остальной код компонента без изменений
   const renderNaAspCards = () => {
-    // Добавляем проверку, что данные существуют
     if (!data || !data.current) return null
 
     return DEALER_CENTERS.map((dealerName) => {
@@ -127,11 +123,9 @@ export default function DataFetcher({ activeTab }) {
             marginBottom: isMobile ? 12 : 16,
             borderRadius: isMobile ? 8 : 12,
           }}
-          headStyle={{
-            padding: isMobile ? '0 12px' : '0 24px',
-          }}
-          bodyStyle={{
-            padding: isMobile ? 12 : 24,
+          styles={{
+            header: { padding: isMobile ? '0 12px' : '0 24px' },
+            body: { padding: isMobile ? 12 : 24 },
           }}
           extra={
             <Tag color={deviation >= 0 ? 'green' : 'red'}>
@@ -169,7 +163,7 @@ export default function DataFetcher({ activeTab }) {
               <Card
                 size="small"
                 title="План vs Факт"
-                bodyStyle={{ padding: isMobile ? 8 : 12 }}
+                styles={{ body: { padding: isMobile ? 8 : 12 } }}
               >
                 <Row gutter={[16, 16]}>
                   <Col span={12}>
@@ -222,7 +216,7 @@ export default function DataFetcher({ activeTab }) {
               <Card
                 size="small"
                 title="Динамика продаж"
-                bodyStyle={{ padding: isMobile ? 8 : 12 }}
+                styles={{ body: { padding: isMobile ? 8 : 12 } }}
               >
                 <Row gutter={[16, 16]}>
                   <Col xs={8}>
@@ -366,7 +360,7 @@ export default function DataFetcher({ activeTab }) {
         return <div className="cards-container">{renderNaAspCards()}</div>
       case 'sts':
       case 'mkc':
-        return <div className="cards-container">{renderServiceCards()}</div> // Обернул в div для консистентности
+        return <div className="cards-container">{renderServiceCards()}</div>
       case 'balance':
         return renderBalanceCard()
       default:
