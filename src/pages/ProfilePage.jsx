@@ -1,11 +1,14 @@
-import { Card, Typography, Button, Space } from 'antd'
+import { Card, Typography, Button, Space, Spin } from 'antd'
 import { useAuth } from '../contexts/AuthContext'
-import ProfileForm from '../components/auth/ProfileForm' // 1. Импортируем нашу форму
+import { useUserProfile } from '../hooks/useUserProfile' // 1. Импортируем хук профиля
+import ProfileForm from '../components/auth/ProfileForm'
 
-const { Title, Text } = Typography // Используем Text для консистентности
+const { Text } = Typography
 
 export default function ProfilePage() {
   const { user, logout } = useAuth()
+  // 2. Получаем профиль и статус его загрузки
+  const { data: profile, isLoading: isProfileLoading } = useUserProfile(user)
 
   if (!user) return null
 
@@ -19,7 +22,14 @@ export default function ProfilePage() {
             </Text>
             <Text>
               <strong>Роль:</strong>{' '}
-              {user.role === 'admin' ? 'Администратор' : 'Пользователь'}
+              {/* 3. Показываем Spin пока роль загружается, затем отображаем ее */}
+              {isProfileLoading ? (
+                <Spin size="small" />
+              ) : profile?.role === 'admin' ? (
+                'Администратор'
+              ) : (
+                'Пользователь'
+              )}
             </Text>
             <Button type="primary" onClick={logout} danger>
               Выйти
@@ -27,7 +37,6 @@ export default function ProfilePage() {
           </Space>
         </Card>
 
-        {/* 2. Добавляем компонент формы смены пароля */}
         <ProfileForm />
       </Space>
     </div>

@@ -1,13 +1,13 @@
 import { Menu, Layout, Grid, Dropdown, Button, theme } from 'antd'
 import { MenuOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons'
 import { useAuth } from '../contexts/AuthContext'
+import { useUserProfile } from '../hooks/useUserProfile' // 1. Импортируем новый хук
 import { useNavigate } from 'react-router-dom'
 
 const { Header } = Layout
 const { useBreakpoint } = Grid
 const { useToken } = theme
 
-// SVG логотипа Петровского
 const PetrovskyLogo = () => (
   <svg
     width="32"
@@ -32,9 +32,9 @@ export default function AppHeader({ activeTab, setActiveTab }) {
   const isMobile = !screens.md
   const { token } = useToken()
   const { user, logout } = useAuth()
+  const { data: profile, isLoading: isProfileLoading } = useUserProfile(user) // 2. Получаем профиль
   const navigate = useNavigate()
 
-  // Пункты меню (анализ данных, админка, профиль, выход)
   const menuItems = [
     {
       key: 'data',
@@ -44,7 +44,8 @@ export default function AppHeader({ activeTab, setActiveTab }) {
         navigate('/dashboard')
       },
     },
-    ...(user?.role === 'admin'
+    // 3. Показываем админку, только если профиль загружен и роль - admin
+    ...(!isProfileLoading && profile?.role === 'admin'
       ? [
           {
             key: 'admin',
@@ -114,7 +115,6 @@ export default function AppHeader({ activeTab, setActiveTab }) {
           </span>
         </div>
 
-        {/* Мобильное меню (Dropdown) */}
         {isMobile ? (
           <Dropdown
             menu={{ items: menuItems }}
@@ -129,7 +129,6 @@ export default function AppHeader({ activeTab, setActiveTab }) {
             />
           </Dropdown>
         ) : (
-          /* Десктопное меню (горизонтальное) */
           <Menu
             theme="dark"
             mode="horizontal"
