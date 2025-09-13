@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from 'react'
 import {
   AreaChart,
   Area,
@@ -9,7 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-} from 'recharts';
+} from 'recharts'
 import {
   DatePicker,
   Card,
@@ -22,20 +22,21 @@ import {
   Space,
   Typography,
   Empty,
-  Result, // Добавили Result для отображения ошибок
-} from 'antd';
-import ServiceCard from './ServiceCard';
-import BalanceCard from './BalanceCard';
+  Result,
+} from 'antd'
+import ServiceCard from './ServiceCard'
+import BalanceCard from './BalanceCard'
 import {
   calculateMetrics,
   calculateServiceMetrics,
-} from '../utils/metricsCalculator';
-import LoadingIndicator from './LoadingIndicator';
-import dayjs from 'dayjs';
-import { useTabData } from '../hooks/useTabData'; // Импортируем наш новый хук
+} from '../utils/metricsCalculator'
+import LoadingIndicator from './LoadingIndicator'
+import dayjs from 'dayjs'
+import { useTabData } from '../hooks/useTabData'
+import { useAuth } from '../contexts/AuthContext' // 1. Импортируем useAuth
 
-const { Text } = Typography;
-const { useBreakpoint } = Grid;
+const { Text } = Typography
+const { useBreakpoint } = Grid
 
 const DEALER_CENTERS = [
   'Софийская',
@@ -44,23 +45,29 @@ const DEALER_CENTERS = [
   'Мытищи',
   'Белая Дача',
   'Выборгское',
-];
+]
 
 export default function DataFetcher({ activeTab }) {
-  const [selectedMonth, setSelectedMonth] = useState(dayjs());
-  const screens = useBreakpoint();
-  const isMobile = !screens.md;
+  const [selectedMonth, setSelectedMonth] = useState(dayjs())
+  const screens = useBreakpoint()
+  const isMobile = !screens.md
+  const { user } = useAuth() // 2. Получаем пользователя из контекста
 
-  // Вся логика загрузки и состояний теперь в этом хуке
-  const { data, isLoading, isError, error } = useTabData(activeTab, selectedMonth);
+  // 3. Передаем пользователя в наш хук
+  const { data, isLoading, isError, error } = useTabData(
+    activeTab,
+    selectedMonth,
+    user
+  )
 
   const handleMonthChange = (date) => {
-    setSelectedMonth(date);
-  };
-  
-  // Обрабатываем состояния загрузки и ошибки до основного рендера
+    setSelectedMonth(date)
+  }
+
+  // Упрощаем логику загрузки. Если user еще не пришел, enabled: false не даст
+  // isError стать true, поэтому мы просто показываем загрузчик.
   if (isLoading) {
-    return <LoadingIndicator loading={true} />;
+    return <LoadingIndicator loading={true} />
   }
 
   if (isError) {
@@ -70,12 +77,13 @@ export default function DataFetcher({ activeTab }) {
         title="Не удалось загрузить данные"
         subTitle={error.message}
       />
-    );
+    )
   }
 
+  // ... остальной код компонента без изменений
   const renderNaAspCards = () => {
     // Добавляем проверку, что данные существуют
-    if (!data || !data.current) return null;
+    if (!data || !data.current) return null
 
     return DEALER_CENTERS.map((dealerName) => {
       const dealerData = {
@@ -83,9 +91,9 @@ export default function DataFetcher({ activeTab }) {
         previous: data.previous?.filter((item) => item.ДЦ === dealerName) || [],
         appg: data.appg?.filter((item) => item.ДЦ === dealerName) || [],
         plans: data.plans?.filter((item) => item.ДЦ === dealerName) || [],
-      };
+      }
 
-      const metrics = calculateMetrics(dealerData, dealerName);
+      const metrics = calculateMetrics(dealerData, dealerName)
       const {
         planCount,
         factCount,
@@ -94,22 +102,22 @@ export default function DataFetcher({ activeTab }) {
         jokPerUnit,
         growthPrevious,
         growthAppg,
-      } = metrics;
+      } = metrics
 
       if (!shouldDisplayCard(metrics, dealerData)) {
-        return null;
+        return null
       }
 
       const salesData = [
         { name: 'АППГ', value: metrics.appg?.factCount || 0 },
         { name: 'Предыдущий', value: metrics.previous?.factCount || 0 },
         { name: 'Текущий', value: factCount },
-      ];
+      ]
 
       const planVsFactData = [
         { name: 'План', value: planCount },
         { name: 'Факт', value: factCount },
-      ];
+      ]
 
       return (
         <Card
@@ -292,12 +300,12 @@ export default function DataFetcher({ activeTab }) {
             </Col>
           </Row>
         </Card>
-      );
-    });
-  };
+      )
+    })
+  }
 
   const renderServiceCards = () => {
-    if (!data || !data.current) return null;
+    if (!data || !data.current) return null
 
     return DEALER_CENTERS.map((dealerName) => {
       const serviceData = {
@@ -305,16 +313,16 @@ export default function DataFetcher({ activeTab }) {
         previous: data.previous,
         appg: data.appg,
         plans: data.plans,
-      };
+      }
 
       const metrics = calculateServiceMetrics(
         serviceData,
         dealerName,
         activeTab
-      );
+      )
 
       if (!shouldDisplayServiceCard(metrics)) {
-        return null;
+        return null
       }
 
       return (
@@ -324,21 +332,21 @@ export default function DataFetcher({ activeTab }) {
           metrics={metrics}
           isMobile={isMobile}
         />
-      );
-    });
-  };
+      )
+    })
+  }
 
   const renderBalanceCard = () => {
     if (!data || !data.isBalance || !data.current) {
-      return null;
+      return null
     }
 
     return (
       <div className="cards-container">
         <BalanceCard data={data.current} isMobile={isMobile} />
       </div>
-    );
-  };
+    )
+  }
 
   const renderContent = () => {
     if (!selectedMonth) {
@@ -350,21 +358,21 @@ export default function DataFetcher({ activeTab }) {
             <Text>Данные отсутствуют, так как не выбрана дата!</Text>
           }
         />
-      );
+      )
     }
     switch (activeTab) {
       case 'na':
       case 'asp':
-        return <div className="cards-container">{renderNaAspCards()}</div>;
+        return <div className="cards-container">{renderNaAspCards()}</div>
       case 'sts':
       case 'mkc':
-        return <div className="cards-container">{renderServiceCards()}</div>; // Обернул в div для консистентности
+        return <div className="cards-container">{renderServiceCards()}</div> // Обернул в div для консистентности
       case 'balance':
-        return renderBalanceCard();
+        return renderBalanceCard()
       default:
-        return null;
+        return null
     }
-  };
+  }
 
   const shouldDisplayServiceCard = (metrics) => {
     return (
@@ -372,8 +380,8 @@ export default function DataFetcher({ activeTab }) {
       metrics.normHoursPlan > 0 ||
       metrics.gm1Fact > 0 ||
       metrics.gm1Plan > 0
-    );
-  };
+    )
+  }
 
   return (
     <div className="tab-content active">
@@ -407,33 +415,33 @@ export default function DataFetcher({ activeTab }) {
 
       {renderContent()}
     </div>
-  );
+  )
 }
 
 function formatNumber(num) {
   if (typeof num !== 'number' || isNaN(num)) {
-    return '0.00';
+    return '0.00'
   }
   return new Intl.NumberFormat('ru-RU', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(num);
+  }).format(num)
 }
 
 function getTabTitle(tabKey) {
   switch (tabKey) {
     case 'na':
-      return 'Новые авто';
+      return 'Новые авто'
     case 'asp':
-      return 'Авто с пробегом';
+      return 'Авто с пробегом'
     case 'sts':
-      return 'СТС';
+      return 'СТС'
     case 'mkc':
-      return 'МКЦ';
+      return 'МКЦ'
     case 'balance':
-      return 'Баланс';
+      return 'Баланс'
     default:
-      return '';
+      return ''
   }
 }
 
@@ -444,5 +452,5 @@ function shouldDisplayCard(metrics, dealerData) {
     metrics.totalJOK > 0 ||
     (dealerData.previous && dealerData.previous.length > 0) ||
     (dealerData.appg && dealerData.appg.length > 0)
-  );
+  )
 }

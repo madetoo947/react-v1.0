@@ -1,15 +1,15 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchTabData } from '../api/dealerApi';
+import { useQuery } from '@tanstack/react-query'
+import { fetchTabData } from '../api/dealerApi'
 
-export function useTabData(activeTab, selectedMonth) {
+// 1. Принимаем объект user в качестве аргумента
+export function useTabData(activeTab, selectedMonth, user) {
   return useQuery({
-    // Ключ запроса: React Query будет кэшировать данные по этому ключу
     queryKey: ['tabData', activeTab, selectedMonth.format('YYYY-MM')],
-    // Функция, которая выполняет запрос
     queryFn: () => fetchTabData(activeTab, selectedMonth),
-    // Не делать повторный запрос при фокусе окна, если не нужно
+
+    enabled: !!user,
+
     refetchOnWindowFocus: false,
-    // Сохранять предыдущие данные при загрузке новых
     keepPreviousData: true,
-  });
+  })
 }
