@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { Form, Input, Button, message, Card } from 'antd'
-import { useAuth } from '../../contexts/AuthContext'
+import { updateUserPassword } from '../../api/authApi' // Импортируем нашу новую API функцию
 
 export default function ProfileForm() {
   const [loading, setLoading] = useState(false)
-  const { user, updateProfile } = useAuth()
   const [form] = Form.useForm()
 
   const onFinish = async (values) => {
@@ -15,11 +14,13 @@ export default function ProfileForm() {
 
     try {
       setLoading(true)
-      await updateProfile({ password_hash: values.newPassword })
+      // Используем нашу новую, правильную функцию из authApi
+      await updateUserPassword(values.newPassword)
       message.success('Пароль успешно изменен')
       form.resetFields()
     } catch (error) {
-      message.error('Ошибка при изменении пароля')
+      // Ошибка уже будет содержать детальное сообщение от API
+      message.error(error.message)
     } finally {
       setLoading(false)
     }
