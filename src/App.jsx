@@ -1,22 +1,28 @@
-import { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Layout, ConfigProvider, message, Grid, Row, Col } from 'antd'; // Убедись, что message импортирован
-import AppHeader from './components/AppHeader';
-import LoginPage from './pages/LoginPage';
-import ProfilePage from './pages/ProfilePage';
-import DashboardPage from './pages/DashboardPage';
-import AdminPage from './pages/AdminPage';
-import './App.css';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { useState } from 'react'
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from 'react-router-dom'
+import { Layout, ConfigProvider, message, Grid, Row, Col } from 'antd'
+import AppHeader from './components/AppHeader'
+import LoginPage from './pages/LoginPage'
+import ProfilePage from './pages/ProfilePage'
+import DashboardPage from './pages/DashboardPage'
+import AdminPage from './pages/AdminPage'
+import './App.css'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
+import ProtectedRoute from './components/auth/ProtectedRoute' // 1. Импортируем наш новый компонент
 
-const { Content } = Layout;
-const { useBreakpoint } = Grid;
+const { Content } = Layout
+const { useBreakpoint } = Grid
 
 function AppContent() {
-  const [activeTab, setActiveTab] = useState('na');
-  const { user } = useAuth();
-  const screens = useBreakpoint();
-  const isMobile = !screens.md;
+  const [activeTab, setActiveTab] = useState('na')
+  const { user } = useAuth()
+  const screens = useBreakpoint()
+  const isMobile = !screens.md
 
   return (
     <Layout className="layout">
@@ -31,37 +37,42 @@ function AppContent() {
                 borderRadius: isMobile ? 8 : 12,
               }}
             >
+              {/* 2. Обновляем логику маршрутизации */}
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route
                   path="/dashboard"
                   element={
-                    user ? (
+                    <ProtectedRoute>
                       <DashboardPage activeTab={activeTab} />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin"
+                  element={
+                    <ProtectedRoute adminOnly={true}>
+                      <AdminPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/"
+                  element={
+                    user ? (
+                      <Navigate to="/dashboard" />
                     ) : (
                       <Navigate to="/login" />
                     )
                   }
                 />
                 <Route
-                  path="/admin"
-                  element={
-                    user?.role === 'admin' ? (
-                      <AdminPage />
-                    ) : (
-                      <Navigate to="/dashboard" />
-                    )
-                  }
-                />
-                <Route
-                  path="/"
-                  element={
-                    user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
-                  }
-                />
-                <Route
                   path="/profile"
-                  element={user ? <ProfilePage /> : <Navigate to="/login" />}
+                  element={
+                    <ProtectedRoute>
+                      <ProfilePage />
+                    </ProtectedRoute>
+                  }
                 />
               </Routes>
             </div>
@@ -69,35 +80,27 @@ function AppContent() {
         </Row>
       </Content>
     </Layout>
-  );
+  )
 }
 
 export default function App() {
-  // --- ШАГ 1: Создаем экземпляр message API и contextHolder ---
-  const [messageApi, contextHolder] = message.useMessage();
-
-  // Настройка message.config больше не нужна, все будет браться из темы
-  // message.config({ maxCount: 3 });
+  const [messageApi, contextHolder] = message.useMessage()
 
   return (
     <ConfigProvider
       theme={{
         token: {
-          // ... твои токены ...
           colorPrimary: '#FBBB12',
           colorBgLayout: '#141414',
           colorBgContainer: '#1f1f1f',
           colorBgElevated: '#2a2a2a',
           colorText: 'rgba(255, 255, 255, 0.85)',
           colorTextSecondary: 'rgba(255, 255, 255, 0.65)',
-          // ... остальные токены ...
         },
         components: {
-          // ... твои компоненты ...
           message: {
             colorText: 'rgba(255, 255, 255, 0.85)',
-            colorBgElevated: '#3a3a3a', // Фон уведомления
-            // Можно добавить и другие токены, например, для иконок
+            colorBgElevated: '#3a3a3a',
             colorSuccess: '#4caf50',
             colorError: '#e42618',
             colorWarning: '#FBBB12',
@@ -105,7 +108,6 @@ export default function App() {
         },
       }}
     >
-      {/* --- ШАГ 2: Рендерим contextHolder где-нибудь в приложении --- */}
       {contextHolder}
       <Router>
         <AuthProvider>
@@ -113,5 +115,5 @@ export default function App() {
         </AuthProvider>
       </Router>
     </ConfigProvider>
-  );
+  )
 }
