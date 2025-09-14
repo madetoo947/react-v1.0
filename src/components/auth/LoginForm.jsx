@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Form, Input, Button, Checkbox, message } from 'antd'
 import { UserOutlined, LockOutlined } from '@ant-design/icons'
-import { useAuth } from '../contexts/AuthContext'
-import { loginUser } from '../api/authApi'
+import { useAuth } from '../../contexts/AuthContext'
+import { loginUser } from '../../api/authApi'
 
 export default function LoginForm() {
   const [loading, setLoading] = useState(false)

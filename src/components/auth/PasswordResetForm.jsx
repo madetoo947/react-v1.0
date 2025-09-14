@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Form, Input, Button, message } from 'antd'
 import { MailOutlined } from '@ant-design/icons'
-import { resetPassword } from '../api/authApi'
+import { resetPassword } from '../../api/authApi'
 
 export default function PasswordResetForm() {
   const [loading, setLoading] = useState(false)

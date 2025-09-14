@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient'
-import { apiWrapper } from './apiUtils' // Импортируем нашу новую утилиту
+// import { apiWrapper } from './apiUtils' // Импортируем нашу новую утилиту
 
 // Главная функция загрузки данных
 export async function fetchTabData(tab, date) {
